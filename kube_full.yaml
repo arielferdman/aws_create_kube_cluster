@@ -1,0 +1,13 @@
+- hosts: localhost
+
+- name: Create vpc with an internet gateway
+  import_playbook: vpc.yaml
+
+- name: Create and download a key pair for ec2 instances
+  import_playbook: key.yaml
+
+- name: Create ec2 instanecs
+  import_playbook: ec2.yaml
+
+- name: Show all of the ec2 instances dns/ips
+  import_playbook: ec2_info.yaml

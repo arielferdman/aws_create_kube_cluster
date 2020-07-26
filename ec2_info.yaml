@@ -1,0 +1,20 @@
+---
+- hosts: localhost
+  tasks:
+    - name: Get ec2 instance info
+      ec2_instance_info:
+        filters:
+            instance-state-name: ["running"]
+      register: ec2_instance_data
+
+    - name: Get instance ip
+      set_fact:
+        instance_ip: "{{ instance_ip | default([]) +  [ec2_instance_data.instances[item].public_ip_address] }}"
+      loop:
+        - 0
+        - 1
+        - 2
+
+    - name: Display ec2 instance info
+      debug:
+        var: instance_ip

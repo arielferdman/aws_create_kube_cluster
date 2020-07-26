@@ -1,0 +1,16 @@
+---
+- hosts: localhost
+  tasks:
+        - name: Create ec2 for kubernetes2
+          ec2:
+            key_name: aws_kube
+            region: us-east-1
+            instance_type: t2.micro
+            image: ami-0d57c0143330e1fa7
+            assign_public_ip: yes
+            wait: yes
+            instance_tags:
+                type: node
+            exact_count: 0
+            count_tag: type
+  

@@ -1,0 +1,17 @@
+---
+- hosts: localhost
+  tasks:
+    - name: Create ec2 for kubernetes2
+      ec2:
+        key_name: aws_kube
+        region: us-east-1
+        instance_type: t3.medium
+        image: ami-0d57c0143330e1fa7
+        vpc_subnet_id: "{{ public_subnet_id }}"
+        assign_public_ip: yes
+        wait: yes
+        instance_tags:
+            type: node
+        exact_count: 3
+        count_tag: type
+  

@@ -1,0 +1,82 @@
+---
+- hosts: localhost
+  tasks:
+    - name: Create a VPC with a couple of tags
+      ec2_vpc_net:
+        name: kubernetes2
+        cidr_block: 10.10.0.0/16
+        region: us-east-1
+        tags:
+          module: ec2_vpc_net
+          this: works
+        tenancy: default
+      register: vpc
+    
+    - name: get vpc id
+      set_fact:
+        vpc_id: "{{ vpc.vpc.id }}"
+
+    - name: create internet gateway
+      ec2_vpc_igw:
+        vpc_id: "{{ vpc_id }}"
+      register: gateway
+
+    - name: Create subnet for public access to servers
+      ec2_vpc_subnet:
+        state: present
+        region: us-east-1
+        vpc_id: "{{ vpc_id }}"
+        cidr: 10.10.1.0/24
+        tags:
+          Name: public_subnet
+      register: public_subnet
+
+    - name: get subnet id
+      set_fact:
+        public_subnet_id: "{{ public_subnet.subnet.id }}"
+    
+    - name: get igw id
+      set_fact:
+        igw_id: "{{ gateway.gateway_id }}"
+
+    - name: Set up public subnet route table
+      ec2_vpc_route_table:
+        vpc_id: "{{ vpc_id }}"
+        region: us-east-1
+        tags:
+          Name: Public
+        subnets:
+          - "{{ public_subnet_id }}"
+        routes:
+          - dest: 0.0.0.0/0
+            gateway_id: "{{ igw_id }}"
+      register: public_route_table
+
+    - name: Create and associate nacl with public subnet
+      ec2_vpc_nacl:
+        vpc_id: "{{ vpc_id }}"
+        name: public
+        region: us-east-1
+        subnets: ["{{ public_subnet_id }}"]
+        ingress:
+            # rule no, protocol, allow/deny, cidr, icmp_type, icmp_code,
+            #                                             port from, port to
+            - [100, 'tcp', 'allow', '0.0.0.0/0', null, null, 22, 22]
+            # - [200, 'tcp', 'allow', '0.0.0.0/0', null, null, 80, 80]
+        egress:
+            - [100, 'tcp', 'allow', '0.0.0.0/0', null, null, 0, 65535]
+        state: 'present'
+
+    - name: Add ssh rule for default security group
+      ec2_group:
+        name: default
+        description: sg with rule descriptions
+        vpc_id: "{{ vpc_id }}"
+        # profile: "{{ aws_profile }}"
+        region: us-east-1
+        rules:
+          - proto: tcp
+            ports:
+            - 22
+            cidr_ip: 0.0.0.0/0
+            rule_desc: allow all on port 22

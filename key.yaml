@@ -1,0 +1,12 @@
+---
+- hosts: localhost
+  tasks:
+    - name: Create an EC2 key
+      ec2_key:
+        name: aws_kube
+        region: us-east-1
+      register: ec2_key
+
+    - name: Save private key
+      copy: content="{{ ec2_key.key.private_key }}" dest="aws_kube.pem" mode=0400
+      when: ec2_key.changed
